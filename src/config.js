@@ -6,3 +6,5 @@ import { Platform } from 'react-native';
 export const DEFAULT_SERVER_URL = Platform.OS === 'web'
   ? 'http://localhost:3000'
   : 'http://192.168.1.19:3000';
+
+export const DEFAULT_ROOM = 'general';

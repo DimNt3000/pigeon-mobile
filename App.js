@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 
 import JoinScreen from './src/JoinScreen';
 import ChatScreen from './src/ChatScreen';
-import { DEFAULT_SERVER_URL } from './src/config';
+import { DEFAULT_SERVER_URL, DEFAULT_ROOM } from './src/config';
 
 const TYPING_IDLE_MS = 1500;
 const JOIN_TIMEOUT_MS = 5000;
@@ -13,12 +13,15 @@ const JOIN_TIMEOUT_MS = 5000;
 export default function App() {
   const socketRef = useRef(null);
   const usernameRef = useRef(null);
+  const roomRef = useRef(null);
   const nextIdRef = useRef(1);
   const typingTimerRef = useRef(null);
   const isTypingRef = useRef(false);
 
   const [phase, setPhase] = useState('join'); // 'join' | 'chat'
   const [username, setUsername] = useState(null);
+  const [room, setRoom] = useState(null);
+  const [rooms, setRooms] = useState([]);
   const [connected, setConnected] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState(null);
@@ -30,6 +33,21 @@ export default function App() {
 
   function addItem(kind, payload) {
     setMessages((prev) => [{ id: nextIdRef.current++, kind, ...payload }, ...prev]);
+  }
+
+  function historyToItems(history) {
+    return history
+      .map((message) => ({ id: nextIdRef.current++, kind: 'message', ...message }))
+      .reverse();
+  }
+
+  function applyJoin(response) {
+    usernameRef.current = response.username;
+    roomRef.current = response.room;
+    setUsername(response.username);
+    setRoom(response.room);
+    setTypingUsers([]);
+    setMessages(historyToItems(response.history));
   }
 
   function emitTypingStop() {
@@ -56,9 +74,10 @@ export default function App() {
     typingTimerRef.current = setTimeout(emitTypingStop, TYPING_IDLE_MS);
   }
 
-  function joinChat(rawName, rawUrl) {
+  function joinChat(rawName, rawUrl, rawRoom) {
     const name = rawName.trim();
     const url = rawUrl.trim().replace(/\/+$/, '');
+    const initialRoom = (rawRoom ?? '').trim() || DEFAULT_ROOM;
     if (!name || !url) return;
 
     socketRef.current?.disconnect();
@@ -71,24 +90,24 @@ export default function App() {
     socket.on('connect', () => {
       setConnected(true);
       const isRejoin = usernameRef.current !== null;
-      socket.timeout(JOIN_TIMEOUT_MS).emit('join', usernameRef.current ?? name, (err, response) => {
-        if (isRejoin) return; // reconnect: the server re-registered us, nothing to render
+      const payload = {
+        name: usernameRef.current ?? name,
+        room: roomRef.current ?? initialRoom,
+      };
+      socket.timeout(JOIN_TIMEOUT_MS).emit('join', payload, (err, response) => {
         if (err || !response || response.error) {
+          if (isRejoin) return; // stay connected, the next reconnect cycle retries
           socket.disconnect();
           socketRef.current = null;
           setJoining(false);
           setJoinError(response?.error ?? 'The server did not reply to the join request.');
           return;
         }
-        usernameRef.current = response.username;
-        setUsername(response.username);
-        setMessages(
-          response.history
-            .map((message) => ({ id: nextIdRef.current++, kind: 'message', ...message }))
-            .reverse()
-        );
-        setJoining(false);
-        setPhase('chat');
+        applyJoin(response); // on rejoin this also replays messages missed while offline
+        if (!isRejoin) {
+          setJoining(false);
+          setPhase('chat');
+        }
       });
     });
 
@@ -117,6 +136,8 @@ export default function App() {
 
     socket.on('users', (names) => setUsers(names));
 
+    socket.on('rooms', (list) => setRooms(list));
+
     socket.on('typing', ({ user, isTyping }) => {
       setTypingUsers((prev) => {
         const without = prev.filter((n) => n !== user);
@@ -130,13 +151,28 @@ export default function App() {
     emitTypingStop();
   }
 
+  function switchRoom(nextRoom) {
+    const socket = socketRef.current;
+    if (!socket || !usernameRef.current || nextRoom === roomRef.current) return;
+    emitTypingStop();
+    socket
+      .timeout(JOIN_TIMEOUT_MS)
+      .emit('join', { name: usernameRef.current, room: nextRoom }, (err, response) => {
+        if (err || !response || response.error) return;
+        applyJoin(response);
+      });
+  }
+
   function leaveChat() {
     emitTypingStop();
     socketRef.current?.disconnect();
     socketRef.current = null;
     usernameRef.current = null;
+    roomRef.current = null;
     setPhase('join');
     setUsername(null);
+    setRoom(null);
+    setRooms([]);
     setConnected(false);
     setJoining(false);
     setJoinError(null);
@@ -158,11 +194,14 @@ export default function App() {
       ) : (
         <ChatScreen
           username={username}
+          room={room}
+          rooms={rooms}
           connected={connected}
           users={users}
           messages={messages}
           typingUsers={typingUsers}
           onSend={sendMessage}
+          onSwitchRoom={switchRoom}
           onTypingChange={handleTypingChange}
           onLeave={leaveChat}
         />

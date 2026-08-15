@@ -11,14 +11,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, serif } from './theme';
+import { DEFAULT_ROOM } from './config';
 
 export default function JoinScreen({ defaultServerUrl, joining, error, onJoin }) {
   const [name, setName] = useState('');
+  const [room, setRoom] = useState(DEFAULT_ROOM);
   const [serverUrl, setServerUrl] = useState(defaultServerUrl);
   const canJoin = name.trim().length > 0 && serverUrl.trim().length > 0 && !joining;
 
   function submit() {
-    if (canJoin) onJoin(name, serverUrl);
+    if (canJoin) onJoin(name, serverUrl, room);
   }
 
   return (
@@ -45,6 +47,20 @@ export default function JoinScreen({ defaultServerUrl, joining, error, onJoin })
               autoCorrect={false}
               returnKeyType="next"
             />
+
+            <Text style={styles.label}>Room</Text>
+            <TextInput
+              style={styles.input}
+              value={room}
+              onChangeText={setRoom}
+              maxLength={20}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
+            />
+            <Text style={styles.hint}>
+              general, random and dev exist by default. Any other name creates a room.
+            </Text>
 
             <Text style={styles.label}>Server address</Text>
             <TextInput

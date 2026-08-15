@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, serif } from './theme';
+import { colors } from './theme';
 
 // Manual formatting instead of toLocaleTimeString: Hermes ships partial Intl
 // support, so keep time rendering engine-independent.
@@ -31,11 +31,14 @@ function typingText(typingUsers) {
 
 export default function ChatScreen({
   username,
+  room,
+  rooms,
   connected,
   users,
   messages,
   typingUsers,
   onSend,
+  onSwitchRoom,
   onTypingChange,
   onLeave,
 }) {
@@ -77,7 +80,9 @@ export default function ChatScreen({
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topbar}>
-        <Text style={styles.wordmark}>Pigeon</Text>
+        <Text style={styles.roomTitle} numberOfLines={1}>
+          {room ? `#${room}` : 'Pigeon'}
+        </Text>
         <View style={styles.topbarRight}>
           <Pressable
             accessibilityRole="button"
@@ -137,19 +142,42 @@ export default function ChatScreen({
       <Modal
         visible={showUsers}
         transparent
-        animationType="fade"
+        // On web the fade is driven by a CSS animation, and the modal only
+        // unmounts once `animationend` fires. Environments that never
+        // composite frames leave it stuck open, so skip the animation there.
+        animationType={Platform.OS === 'web' ? 'none' : 'fade'}
         onRequestClose={() => setShowUsers(false)}
       >
         <Pressable style={styles.backdrop} onPress={() => setShowUsers(false)}>
-          <View style={styles.usersPanel}>
-            <Text style={styles.usersTitle}>Online ({users.length})</Text>
+          <Pressable style={styles.usersPanel} onPress={() => {}}>
+            <Text style={styles.usersTitle}>Rooms</Text>
+            {rooms.map((entry) => {
+              const current = entry.name === room;
+              return (
+                <Pressable
+                  key={entry.name}
+                  accessibilityRole="button"
+                  disabled={current}
+                  onPress={() => {
+                    setShowUsers(false);
+                    onSwitchRoom(entry.name);
+                  }}
+                  style={[styles.roomRow, current && styles.roomRowCurrent]}
+                >
+                  <Text style={[styles.roomRowText, current && styles.roomRowTextCurrent]}>
+                    {entry.count > 0 ? `#${entry.name} (${entry.count})` : `#${entry.name}`}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            <Text style={[styles.usersTitle, styles.sectionGap]}>Online ({users.length})</Text>
             {users.map((name, index) => (
               <Text key={`${name}-${index}`} style={styles.userRow}>
                 {name}
                 {name === username ? ' (you)' : ''}
               </Text>
             ))}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -179,11 +207,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  wordmark: {
-    fontFamily: serif,
-    fontSize: 20,
+  roomTitle: {
+    fontSize: 17,
     fontWeight: '700',
     color: colors.ink,
+    flexShrink: 1,
   },
   presence: {
     flexDirection: 'row',
@@ -346,6 +374,25 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.muted,
     marginBottom: 12,
+  },
+  sectionGap: {
+    marginTop: 16,
+  },
+  roomRow: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  roomRowCurrent: {
+    backgroundColor: colors.accentSoft,
+  },
+  roomRowText: {
+    fontSize: 16,
+    color: colors.ink,
+  },
+  roomRowTextCurrent: {
+    fontWeight: '600',
   },
   userRow: {
     fontSize: 16,

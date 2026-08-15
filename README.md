@@ -1,9 +1,10 @@
 # Pigeon Mobile
 
 React Native (Expo) client for the Pigeon chat server that lives in
-`../socketio-chat`. Same features as the web client: join with a name,
-real-time messages, online list, typing indicator, join and leave notices,
-automatic reconnect.
+`../socketio-chat`. Same features as the web client: join a room with a name,
+real-time messages, room switching from the header modal, online list, typing
+indicator, join and leave notices, automatic reconnect that replays missed
+messages.
 
 ## Stack
 

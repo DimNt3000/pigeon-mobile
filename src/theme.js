@@ -8,6 +8,7 @@ export const colors = {
   border: '#d9d3c9',
   accent: '#2c6e49',
   accentDark: '#245a3c',
+  accentSoft: '#e7efe9',
   offline: '#b45309',
   error: '#9b1c1c',
   onAccent: '#ffffff',
