@@ -35,6 +35,7 @@ export default function ChatScreen({
   rooms,
   connected,
   users,
+  myId,
   messages,
   typingUsers,
   pending,
@@ -66,7 +67,9 @@ export default function ChatScreen({
         </Text>
       );
     }
-    const own = item.user === username;
+    // Live messages carry the author's id, so a same-named stranger is never
+    // mistaken for you. Messages stored before ids existed fall back to the name.
+    const own = item.clientId ? item.clientId === myId : item.user === username;
     return (
       <View style={[styles.message, own && styles.messageOwn]}>
         <View style={styles.meta}>
@@ -180,10 +183,12 @@ export default function ChatScreen({
               );
             })}
             <Text style={[styles.usersTitle, styles.sectionGap]}>Online ({users.length})</Text>
-            {users.map((name, index) => (
-              <Text key={`${name}-${index}`} style={styles.userRow}>
-                {name}
-                {name === username ? ' (you)' : ''}
+            {/* One row per person, so two people sharing a name both appear and
+                only the one that is actually you is marked. */}
+            {users.map((person) => (
+              <Text key={person.id} style={styles.userRow}>
+                {person.name}
+                {person.id === myId ? ' (you)' : ''}
               </Text>
             ))}
           </Pressable>

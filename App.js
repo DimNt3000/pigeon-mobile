@@ -11,6 +11,12 @@ const TYPING_IDLE_MS = 1500;
 const JOIN_TIMEOUT_MS = 5000;
 const MAX_OUTBOX = 50;
 
+// Identifies this app session for as long as it is running, nothing more. It is
+// what tells two people who picked the same display name apart, and what lets a
+// reconnect be recognised as the same person. Nothing is stored on the device,
+// and Hermes has no crypto.randomUUID, so this is built by hand.
+const MY_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
 export default function App() {
   const socketRef = useRef(null);
   const usernameRef = useRef(null);
@@ -97,6 +103,7 @@ export default function App() {
       setConnected(true);
       const isRejoin = usernameRef.current !== null;
       const payload = {
+        clientId: MY_ID,
         name: usernameRef.current ?? name,
         room: roomRef.current ?? initialRoom,
       };
@@ -143,11 +150,12 @@ export default function App() {
 
     socket.on('system', (event) => addItem('system', event));
 
-    socket.on('users', (names) => setUsers(names));
+    socket.on('users', (people) => setUsers(people));
 
     socket.on('rooms', (list) => setRooms(list));
 
-    socket.on('typing', ({ user, isTyping }) => {
+    socket.on('typing', ({ clientId, user, isTyping }) => {
+      if (clientId === MY_ID) return; // our own echo, e.g. the same name on another device
       setTypingUsers((prev) => {
         const without = prev.filter((n) => n !== user);
         return isTyping ? [...without, user] : without;
@@ -188,7 +196,7 @@ export default function App() {
     emitTypingStop();
     socket
       .timeout(JOIN_TIMEOUT_MS)
-      .emit('join', { name: usernameRef.current, room: nextRoom }, (err, response) => {
+      .emit('join', { clientId: MY_ID, name: usernameRef.current, room: nextRoom }, (err, response) => {
         if (err || !response || response.error) return;
         applyJoin(response);
       });
@@ -232,6 +240,7 @@ export default function App() {
           rooms={rooms}
           connected={connected}
           users={users}
+          myId={MY_ID}
           messages={messages}
           typingUsers={typingUsers}
           pending={pending}
