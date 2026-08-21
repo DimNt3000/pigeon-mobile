@@ -9,11 +9,14 @@ import { DEFAULT_SERVER_URL, DEFAULT_ROOM } from './src/config';
 
 const TYPING_IDLE_MS = 1500;
 const JOIN_TIMEOUT_MS = 5000;
+const MAX_OUTBOX = 50;
 
 export default function App() {
   const socketRef = useRef(null);
   const usernameRef = useRef(null);
   const roomRef = useRef(null);
+  const outboxRef = useRef([]); // messages typed while offline, sent on rejoin
+  const joinedHereRef = useRef(false);
   const nextIdRef = useRef(1);
   const typingTimerRef = useRef(null);
   const isTypingRef = useRef(false);
@@ -28,6 +31,7 @@ export default function App() {
   const [messages, setMessages] = useState([]); // newest first, rendered by an inverted list
   const [users, setUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [pending, setPending] = useState(0);
 
   useEffect(() => () => socketRef.current?.disconnect(), []);
 
@@ -44,10 +48,12 @@ export default function App() {
   function applyJoin(response) {
     usernameRef.current = response.username;
     roomRef.current = response.room;
+    joinedHereRef.current = true;
     setUsername(response.username);
     setRoom(response.room);
     setTypingUsers([]);
     setMessages(historyToItems(response.history));
+    flushOutbox();
   }
 
   function emitTypingStop() {
@@ -124,6 +130,9 @@ export default function App() {
 
     socket.on('disconnect', () => {
       setConnected(false);
+      // The next connection gets a new socket id, so the server will not know
+      // us again until the rejoin is acknowledged.
+      joinedHereRef.current = false;
       setTypingUsers([]);
     });
 
@@ -146,9 +155,31 @@ export default function App() {
     });
   }
 
+  // Only true once the server has confirmed us into a room on this connection.
+  // Between the socket connecting and the rejoin being acknowledged the server
+  // has no record of us, so anything sent in that window is discarded.
+  function canSend() {
+    return Boolean(socketRef.current?.connected) && joinedHereRef.current;
+  }
+
+  // Socket.IO would buffer a message sent while offline, but it flushes that
+  // buffer before we get to rejoin, so the server would drop it silently. Hold
+  // it here instead and send it once we are back in the room.
   function sendMessage(text) {
-    socketRef.current?.emit('chat message', text);
+    if (canSend()) {
+      socketRef.current.emit('chat message', text);
+    } else if (outboxRef.current.length < MAX_OUTBOX) {
+      outboxRef.current.push(text);
+      setPending(outboxRef.current.length);
+    }
     emitTypingStop();
+  }
+
+  function flushOutbox() {
+    while (outboxRef.current.length && canSend()) {
+      socketRef.current.emit('chat message', outboxRef.current.shift());
+    }
+    setPending(outboxRef.current.length);
   }
 
   function switchRoom(nextRoom) {
@@ -169,6 +200,9 @@ export default function App() {
     socketRef.current = null;
     usernameRef.current = null;
     roomRef.current = null;
+    joinedHereRef.current = false;
+    outboxRef.current = [];
+    setPending(0);
     setPhase('join');
     setUsername(null);
     setRoom(null);
@@ -200,6 +234,7 @@ export default function App() {
           users={users}
           messages={messages}
           typingUsers={typingUsers}
+          pending={pending}
           onSend={sendMessage}
           onSwitchRoom={switchRoom}
           onTypingChange={handleTypingChange}

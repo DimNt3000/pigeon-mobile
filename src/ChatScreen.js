@@ -37,6 +37,7 @@ export default function ChatScreen({
   users,
   messages,
   typingUsers,
+  pending,
   onSend,
   onSwitchRoom,
   onTypingChange,
@@ -115,7 +116,15 @@ export default function ChatScreen({
           }
         />
 
-        <Text style={styles.typing}>{typingText(typingUsers)}</Text>
+        {/* Queued messages matter more than who is typing, and nobody can be
+            typing at us while we are offline anyway. */}
+        {pending > 0 ? (
+          <Text style={[styles.typing, styles.typingPending]}>
+            {pending === 1 ? 'Waiting to send 1 message' : `Waiting to send ${pending} messages`}
+          </Text>
+        ) : (
+          <Text style={styles.typing}>{typingText(typingUsers)}</Text>
+        )}
 
         <View style={styles.composer}>
           <TextInput
@@ -314,6 +323,10 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     fontSize: 13,
     color: colors.muted,
+  },
+  typingPending: {
+    color: colors.offline,
+    fontWeight: '600',
   },
   composer: {
     flexDirection: 'row',
