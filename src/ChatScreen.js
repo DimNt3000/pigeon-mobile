@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -162,6 +163,9 @@ export default function ChatScreen({
       >
         <Pressable style={styles.backdrop} onPress={() => setShowUsers(false)}>
           <Pressable style={styles.usersPanel} onPress={() => {}}>
+            {/* Rooms with recent history are listed too, so this can outgrow a
+                phone screen. The panel caps its height and scrolls instead. */}
+            <ScrollView>
             <Text style={styles.usersTitle}>Rooms</Text>
             {rooms.map((entry) => {
               const current = entry.name === room;
@@ -191,6 +195,7 @@ export default function ChatScreen({
                 {person.id === myId ? ' (you)' : ''}
               </Text>
             ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -382,6 +387,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 20,
     maxWidth: 400,
+    maxHeight: '80%',
     width: '100%',
     alignSelf: 'center',
   },
