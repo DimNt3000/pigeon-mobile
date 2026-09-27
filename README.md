@@ -1,11 +1,17 @@
 # Pigeon Mobile
 
-React Native (Expo) client for the Pigeon chat server that lives in
-`../socketio-chat`. Same features as the web client: join a room with a name,
+React Native (Expo) app for [Pigeon](https://github.com/DimNt3000/pigeon), a
+real-time chat server built with Node.js and Socket.IO. Same features as the
+web client: join a room with a name,
 real-time messages, room switching from the header modal, online list, typing
 indicator, join and leave notices, automatic reconnect that replays missed
 messages, and an outbox that holds anything you type while the connection is
 down and sends it once you are back in the room.
+
+<p>
+  <img src="docs/screenshot-chat.png" width="300" alt="A conversation in the general room, with your own message on the right in green and a typing indicator below the messages">
+  <img src="docs/screenshot-rooms.png" width="300" alt="The rooms and people panel, listing four rooms and the four people online, with you marked">
+</p>
 
 ## Stack
 
@@ -18,23 +24,31 @@ down and sends it once you are back in the room.
 
 ## Getting started
 
-1. Start the chat server on the PC:
+1. Clone and start the chat server from the
+   [pigeon](https://github.com/DimNt3000/pigeon) repo on your PC. It needs
+   Node.js 24 or newer:
 
    ```
-   cd ../socketio-chat
+   git clone https://github.com/DimNt3000/pigeon.git
+   cd pigeon
+   npm install
    npm start
    ```
 
-2. Start Metro and scan the QR code with Expo Go (phone and PC on the same WiFi):
+2. Clone this app, install it, start Metro, and scan the QR code with Expo Go.
+   The phone and the PC need to be on the same WiFi:
 
    ```
+   git clone https://github.com/DimNt3000/pigeon-mobile.git
+   cd pigeon-mobile
+   npm install
    npx expo start
    ```
 
-3. In the app, check the server address on the join screen. It defaults to
-   `http://192.168.1.19:3000` (this PC's WiFi address when the project was
-   generated). If your PC's address changed, run `ipconfig` and update the
-   field, or change `DEFAULT_SERVER_URL` in `src/config.js`.
+3. In the app, set the server address on the join screen to your PC's address
+   on the local network, for example `http://192.168.1.19:3000`. On Windows,
+   `ipconfig` shows it as the IPv4 address. To change the default, edit
+   `DEFAULT_SERVER_URL` in `src/config.js`.
 
 ## Testing in a desktop browser
 
@@ -65,4 +79,9 @@ src/config.js       Default server URL per platform
 src/theme.js        Colors and fonts shared by both screens
 src/JoinScreen.js   Name and server address form
 src/ChatScreen.js   Inverted message list, typing line, composer, users modal
+docs/               Screenshots for this README
 ```
+
+## License
+
+MIT
