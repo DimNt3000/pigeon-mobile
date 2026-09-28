@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,10 +24,9 @@ export default function JoinScreen({ defaultServerUrl, joining, error, onJoin })
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* Padding on Android too: drawn edge to edge, the window does not
+          shrink for the keyboard, which would cover the lower fields. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
             <Text style={styles.wordmark}>Pigeon</Text>

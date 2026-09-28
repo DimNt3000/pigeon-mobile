@@ -105,19 +105,20 @@ export default function ChatScreen({
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* Padding on Android too. Expo SDK 57 draws edge to edge, and there
+          the window no longer shrinks when the keyboard opens, so without
+          this the keyboard covers the composer completely. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <FlatList
           inverted
           data={messages}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <Text style={[styles.empty, styles.invertFix]}>No messages yet. Say hi.</Text>
-          }
+          // No flip of our own here: an inverted list already turns its empty
+          // component back the right way round. Android inverts on both axes,
+          // so adding a vertical-only flip left the text mirrored there.
+          ListEmptyComponent={<Text style={styles.empty}>No messages yet. Say hi.</Text>}
         />
 
         {/* Queued messages matter more than who is typing, and nobody can be
@@ -273,9 +274,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 'auto',
     marginBottom: 'auto',
-  },
-  invertFix: {
-    transform: [{ scaleY: -1 }],
   },
   message: {
     maxWidth: '80%',

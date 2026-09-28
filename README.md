@@ -50,6 +50,33 @@ down and sends it once you are back in the room.
    `ipconfig` shows it as the IPv4 address. To change the default, edit
    `DEFAULT_SERVER_URL` in `src/config.js`.
 
+## Installable Android app
+
+The app can also be built into a standalone APK that installs like any other
+app, with no Expo Go needed. It still talks to the same server on your PC.
+
+```
+npx expo prebuild --platform android
+cd android
+gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
+```
+
+The APK lands in `android/app/build/outputs/apk/release/app-release.apk`. The
+`android` folder is generated from `app.json` and is not committed; run
+`prebuild` again after changing the config.
+
+- Build with **JDK 17 or 21**. Newer JDKs print a native-access warning from
+  the `prefab` tool that the Android Gradle plugin treats as a failure, so the
+  C++ configure step fails with `WARNING: A restricted method in
+  java.lang.System has been called`. Point `JAVA_HOME` at a 17 or 21 install.
+- The architectures flag keeps the APK to 64-bit ARM phones and the x86_64
+  emulator. Drop it to include every architecture.
+- `app.json` enables cleartext traffic through `expo-build-properties`,
+  because the server speaks plain `http://` on the local network. Release
+  builds block that by default, and the app would never reach the server.
+- The build is signed with the debug key, which is fine for installing on
+  your own devices but not for a store.
+
 ## Testing in a desktop browser
 
 The same code runs on the web through react-native-web:
