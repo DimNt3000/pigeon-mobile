@@ -13,6 +13,11 @@ down and sends it once you are back in the room.
   <img src="docs/screenshot-rooms.png" width="300" alt="The rooms and people panel, listing four rooms and the four people online, with you marked">
 </p>
 
+**Android:** download the installable APK from the
+[latest release](https://github.com/DimNt3000/pigeon-mobile/releases/latest).
+It needs the [Pigeon server](https://github.com/DimNt3000/pigeon) running on
+a computer on the same network.
+
 ## Stack
 
 - Expo SDK 57, React Native 0.86, plain JavaScript
